@@ -1,3 +1,5 @@
+# Source: https://github.com/OhadRubin/SmBop/blob/main/smbop/utils/node_util.py
+
 import anytree
 from itertools import *
 from anytree import Node

@@ -2,8 +2,10 @@ import os
 import sys
 
 # os.environ['HF_HOME'] = '/mnt/nas/sarvam/open_llm/huggingface_models/'
-os.environ['HF_HOME'] = "/raid/infolab/sarvam/elk_nas_sarvam/open_llm/huggingface_models/"
-sys.path.insert(1, '/root/CS726/')
+os.environ["HF_HOME"] = (
+    "/raid/infolab/sarvam/elk_nas_sarvam/open_llm/huggingface_models/"
+)
+sys.path.insert(1, "/root/CS726/")
 
 import re
 import json
@@ -54,16 +56,28 @@ model.to(device)
 
 # Add special tokens
 def add_special_tokens():
-
-    tokenizer.add_special_tokens({'additional_special_tokens': [NODE_BEGIN_TOKEN, NODE_END_TOKEN, LCHILD_NODE_TOKEN, RCHILD_NODE_TOKEN]})
-    tokenizer.add_special_tokens({'additional_special_tokens': [f"st{i}" for i in range(0, NUM_ST_NODES)]})
+    tokenizer.add_special_tokens(
+        {
+            "additional_special_tokens": [
+                NODE_BEGIN_TOKEN,
+                NODE_END_TOKEN,
+                LCHILD_NODE_TOKEN,
+                RCHILD_NODE_TOKEN,
+            ]
+        }
+    )
+    tokenizer.add_special_tokens(
+        {"additional_special_tokens": [f"st{i}" for i in range(0, NUM_ST_NODES)]}
+    )
 
     model.resize_token_embeddings(len(tokenizer))
 
 
 # Create embeddings for the subtree traversal orders from CLS token
 def create_embedding(traversal_order):
-    encoded_input = subtree_embed_tokenizer(traversal_order, return_tensors='pt').to(device)
+    encoded_input = subtree_embed_tokenizer(traversal_order, return_tensors="pt").to(
+        device
+    )
 
     cls_embedding = None
 
@@ -78,10 +92,13 @@ def create_embedding(traversal_order):
 # Implementation
 add_special_tokens()
 
-with open("/root/CS726/data/spider/rat_input_data/train_schema_subsetting_full_schema.json", "r") as f:
+with open(
+    "/root/CS726/data/spider/rat_input_data/train_schema_subsetting_full_schema.json",
+    "r",
+) as f:
     data = json.load(f)
 
-filtered_data = [item for item in data if item.get('id') in random_numbers]
+filtered_data = [item for item in data if item.get("id") in random_numbers]
 
 print(f"Number of items in the filtered data: {len(filtered_data)}")
 
@@ -93,33 +110,44 @@ for epoch in range(epochs):
     total_loss = 0
     for item in tqdm(filtered_data):
 
-        join_count = (item['SQL'].lower().split()).count('join')
+        join_count = (item["SQL"].lower().split()).count("join")
         if join_count > 2:
             continue
 
         level_node_embeddings = []
-        lora_model.count_of_subtrees_in_previous_level = len(item['input_subtree_traversal_list'])
+        lora_model.count_of_subtrees_in_previous_level = len(
+            item["input_subtree_traversal_list"]
+        )
 
-        try:       
-            for k in item['input_subtree_traversal_list']:
+        try:
+            for k in item["input_subtree_traversal_list"]:
 
-                post_order_embed = create_embedding("postorder:" + list(k.values())[0]['post'])
-                pre_order_embed = create_embedding("preorder:" + list(k.values())[0]['pre'])
-                in_order_embed = create_embedding("inorder:" + list(k.values())[0]['in'])
-                level_node_embeddings.append(torch.concat((post_order_embed, pre_order_embed, in_order_embed)))
+                post_order_embed = create_embedding(
+                    "postorder:" + list(k.values())[0]["post"]
+                )
+                pre_order_embed = create_embedding(
+                    "preorder:" + list(k.values())[0]["pre"]
+                )
+                in_order_embed = create_embedding(
+                    "inorder:" + list(k.values())[0]["in"]
+                )
+                level_node_embeddings.append(
+                    torch.concat((post_order_embed, pre_order_embed, in_order_embed))
+                )
 
-            if len(item['input_subtree_traversal_list']) != 0:
+            if len(item["input_subtree_traversal_list"]) != 0:
                 lora_model.update_lm_heads(level_node_embeddings)
-        
+
         except:
             continue
 
-        
-
-        inputs = tokenizer(item['model_input'] + tokenizer.eos_token + item['output'], return_tensors='pt')
+        inputs = tokenizer(
+            item["model_input"] + tokenizer.eos_token + item["output"],
+            return_tensors="pt",
+        )
         optimizer.zero_grad()
-        input_ids = inputs['input_ids'].to(device)
-        attention_mask = inputs['attention_mask'].to(device)
+        input_ids = inputs["input_ids"].to(device)
+        attention_mask = inputs["attention_mask"].to(device)
         labels = input_ids.clone()
 
         outputs = lora_model(input_ids, attention_mask=attention_mask, labels=labels)
@@ -130,8 +158,7 @@ for epoch in range(epochs):
         total_loss += loss.item()
 
     average_loss = total_loss / len(data)
-    print(f'Epoch {epoch+1}/{epochs}, Loss: {average_loss:.2f}')
+    print(f"Epoch {epoch+1}/{epochs}, Loss: {average_loss:.2f}")
 
 
-    
 lora_model.save_pretrained("codes_3b/full_schema_bert_sample_150")

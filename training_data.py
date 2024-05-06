@@ -1,5 +1,4 @@
-
-# Format: 
+# Format:
 # Level 0: Q | RS -> [node_begin](<value>,<node_phi>,<node_phi>)[node_end] | ...
 # Level 1: Q | RS | <node_embeddings> -> [node_begin](<op>,[node_1],[node_2])[node_end] | [node_begin](<op>,[node_3],[node_phi])[node_end] | ...
 # Level 2: Q | RS | <node_embeddings> -> [node_begin](<op>,[node_1],[node_2])[node_end] | [node_begin](<op>,[node_3],[node_4])[node_end] | ...
@@ -12,7 +11,7 @@ import copy
 import traceback
 
 # os.environ['HF_HOME'] = '/mnt/nas/sarvam/open_llm/huggingface_models/'
-sys.path.insert(1, '/root/CS726/')
+sys.path.insert(1, "/root/CS726/")
 
 from anytree import Node, RenderTree, LevelOrderIter
 import json
@@ -31,12 +30,22 @@ from misc.ra_preproc import ast_to_ra
 #     bird_dev = pd.DataFrame(json.load(f))
 
 
-
 # sql = "SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId  =  T2.Country GROUP BY T1.countryId HAVING count(*)  >  3 UNION SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId  =  T2.Country JOIN MODEL_LIST AS T3 ON T2.Id  =  T3.Maker WHERE T3.Model  =  'fiat'"
 # sql = "select count(*) from employees"
 
 
 def balance_tree(node, ht):
+    """
+    Balances the tree by adjusting the height of the nodes.
+
+    Args:
+        node (Node): The root node of the tree.
+        ht (int): The desired height of the tree.
+
+    Returns:
+        Node: The balanced tree with the specified height.
+    """
+
     if node.height == ht:
         if node.children:
             for child in node.children:
@@ -50,11 +59,18 @@ def balance_tree(node, ht):
 
 
 def fix_height(node, ht):
+    """
+    Fixes the height of the tree to the specified height.
+    """
     while node.height != ht:
         node = Node("keep", children=[node], n_type=node.n_type)
     return node
 
+
 def remove_literal(node):
+    """
+    Removes the literal nodes from the tree.
+    """
     if node.name == "literal":
         node.children[0].parent = node.parent
         node.parent = None
@@ -65,41 +81,41 @@ def remove_literal(node):
             remove_literal(child)
     return node
 
+
+# mapping from node name to human readable name
 rename_nodes_map = {
-        'Val_list' : 'constant union',
-        'And': 'and',
-        'Or': 'or',
-        'gte': 'greater than or equal to',
-        'lte': 'less than or equal to',
-        'gt': 'greater than',
-        'lt': 'less than',
-        'like': 'like',
-        'not_like': 'not like',
-        'In': 'in',
-        'NotIn': 'not in ',
-        'Selection': 'selection',
-        'Project': 'projection',
-        'eq': 'equal to',
-        'neq': 'not equal to',
-        'Limit': 'limit',
-        'max': 'max',
-        'min': 'min',
-        'Orderby_desc': 'order by descending',
-        'Groupby': 'group by',
-        'avg': 'average',
-        'distinct': 'distinct',
-        'Orderby_asc': 'order by ascending',
-        'count': 'count',
-        'Product': 'cartesian product',
-        'in': 'in',
-        'sum': 'sum',
-        'intersect': 'intersection',
-        'except': 'difference',
-        'keep': 'keep',
-        'Distinct': 'distinct'
-
+    "Val_list": "constant union",
+    "And": "and",
+    "Or": "or",
+    "gte": "greater than or equal to",
+    "lte": "less than or equal to",
+    "gt": "greater than",
+    "lt": "less than",
+    "like": "like",
+    "not_like": "not like",
+    "In": "in",
+    "NotIn": "not in ",
+    "Selection": "selection",
+    "Project": "projection",
+    "eq": "equal to",
+    "neq": "not equal to",
+    "Limit": "limit",
+    "max": "max",
+    "min": "min",
+    "Orderby_desc": "order by descending",
+    "Groupby": "group by",
+    "avg": "average",
+    "distinct": "distinct",
+    "Orderby_asc": "order by ascending",
+    "count": "count",
+    "Product": "cartesian product",
+    "in": "in",
+    "sum": "sum",
+    "intersect": "intersection",
+    "except": "difference",
+    "keep": "keep",
+    "Distinct": "distinct",
 }
-
 
 
 # def extract_nodes_at_level(
@@ -138,11 +154,17 @@ rename_nodes_map = {
 #         return nodes_repr_, nodes_order_
 #     return nodes_repr, nodes_order
 
+
 def get_node_names(node):
     if node.children:
-        return node.name + " || " + " || ".join([get_node_names(child) for child in node.children])
+        return (
+            node.name
+            + " || "
+            + " || ".join([get_node_names(child) for child in node.children])
+        )
     else:
         return node.name
+
 
 def update_node_names(node):
     if node.children:
@@ -159,23 +181,26 @@ def update_node_names(node):
             node.name = rename_nodes_map.get(node.name, node.name)
     return node
 
+
 def add_level_wise_index(root):
+    """
+    Adds level wise index to the nodes of the tree.
+    """
     for h in range(0, root.height + 1):
         idx = 0
-        for k, v in enumerate(
-                LevelOrderIter(root, filter_=lambda n: n.height == h)
-            ):
+        for k, v in enumerate(LevelOrderIter(root, filter_=lambda n: n.height == h)):
 
             v.level_idx = idx
             idx += 1
-    
+
     return root
+
 
 def print_tree(root):
     for pre, fill, node in RenderTree(root):
         print("%s%s%s" % (pre, node.name, node.level_idx))
-        
-        
+
+
 # def get_node_repr(parsed):
 #     root = ast_to_ra(parsed)
 #     root = remove_literal(root)
@@ -188,7 +213,6 @@ def print_tree(root):
 
 
 #     print_tree(root)
-
 
 
 #     nodes = {}
@@ -211,8 +235,6 @@ def print_tree(root):
 #     return nodes_repr
 
 
-
-
 # def get_node_repr_training(node_tuple):
 #     node_repr = '[NODE_BEGIN]'
 #     node_repr += str(node_tuple[0])
@@ -228,7 +250,6 @@ def print_tree(root):
 
 
 # nodes_repr = get_node_repr(parsed_sql)
-
 
 
 # def gen_training_repr(nodes_repr):
@@ -248,8 +269,6 @@ def print_tree(root):
 #     print(level)
 
 
-
-
 # with open("/root/CS726/data/spider/processed/train_gold.json", "r") as f:
 #     data = json.load(f)
 
@@ -258,24 +277,27 @@ def print_tree(root):
 # total = 0
 # aa = []
 
+
 def remove_keep(node):
+    """
+    Removes the keep nodes from the tree.
+    """
     if node.name == "keep":
         node.children[0].parent = node.parent
         node.parent = None
         # node.parent.children.remove(node)
-
     else:
         for child in node.children:
             remove_keep(child)
     return node
 
 
-def get_tree_traversal(root_node, order=['post', 'pre', 'in']):
+def get_tree_traversal(root_node, order=["post", "pre", "in"]):
     """
     root_node: node object for root
     order: list of traversals to be done in order
     """
-    
+
     assert root_node is not None
     # remove keep (to remove duplicate node reps)
     root_node = remove_keep(root_node)
@@ -295,7 +317,7 @@ def get_tree_traversal(root_node, order=['post', 'pre', 'in']):
             result_str += str(node.name)
         result_str += NODE_END_TOKEN
         # result_hashes.append(node.hash)
-    
+
     def recurse_pre(node):
         nonlocal result_str
         result_str += NODE_BEGIN_TOKEN
@@ -306,7 +328,7 @@ def get_tree_traversal(root_node, order=['post', 'pre', 'in']):
             for child in node.children:
                 recurse_pre(child)
         result_str += NODE_END_TOKEN
-    
+
     def recurse_in(node):
         nonlocal result_str
         result_str += NODE_BEGIN_TOKEN
@@ -325,12 +347,10 @@ def get_tree_traversal(root_node, order=['post', 'pre', 'in']):
                         recurse_in(child)
         result_str += NODE_END_TOKEN
 
-    traversal_order = {'pre': recurse_pre,
-                       'in': recurse_in,
-                       'post': recurse_post}
-    
+    traversal_order = {"pre": recurse_pre, "in": recurse_in, "post": recurse_post}
+
     traversals = []
-    
+
     for o in order:
         result_str = ""
         traversal_order[o](root_node)
@@ -342,21 +362,21 @@ def get_tree_traversal(root_node, order=['post', 'pre', 'in']):
 
 
 # def get_subtree_embeddings(traversed_tree):
-    
+
 #     inputs = subtree_embed_tokenizer(traversed_tree, return_tensors="pt", padding=True).to(device)
-    
+
 #     outputs = model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'],
 #                                  output_hidden_states=True)
-    
+
 #     return outputs.hidden_states[0]
 
 #     # level_node_embeddings[-1].append(outputs)
 
 
-
-
 def generate_input_output(root, j_obj):
-        
+    """
+    Generates the input and output sequences for the model.
+    """
     input_seq = ""
     output_seq = ""
     # traversals = ""
@@ -374,14 +394,16 @@ def generate_input_output(root, j_obj):
         for i in previous_level_subtrees:
             t = copy.deepcopy(i)
             tree_trav = get_tree_traversal(t)
-            
-            input_subtree_traversal_list.append({
-                f'st{i.level_idx}': {
-                'post': tree_trav[0],
-                'pre': tree_trav[1],
-                'in': tree_trav[2]
+
+            input_subtree_traversal_list.append(
+                {
+                    f"st{i.level_idx}": {
+                        "post": tree_trav[0],
+                        "pre": tree_trav[1],
+                        "in": tree_trav[2],
+                    }
                 }
-            })
+            )
             # post_order = "postorder traversal: " + tree_trav[0]
             # pre_order = "preorder traversal: " + tree_trav[1]
             # in_order = "inorder traversal: " + tree_trav[2]
@@ -396,20 +418,32 @@ def generate_input_output(root, j_obj):
             input_seq = "|".join(st_list)
 
         previous_level_subtrees = []
-        
-        for k, v in enumerate(
-                LevelOrderIter(root, filter_=lambda n: n.height == h)
-            ):
+
+        for k, v in enumerate(LevelOrderIter(root, filter_=lambda n: n.height == h)):
 
             num_children = len(v.children)
 
             assert num_children <= 2, f"Expected <=2 children, {num_children=}"
 
             if num_children == 2:
-                output_seq += NODE_BEGIN_TOKEN + str(v.name) + LCHILD_NODE_TOKEN + f"st{v.children[0].level_idx}" + RCHILD_NODE_TOKEN + f"st{v.children[1].level_idx}" + NODE_END_TOKEN
+                output_seq += (
+                    NODE_BEGIN_TOKEN
+                    + str(v.name)
+                    + LCHILD_NODE_TOKEN
+                    + f"st{v.children[0].level_idx}"
+                    + RCHILD_NODE_TOKEN
+                    + f"st{v.children[1].level_idx}"
+                    + NODE_END_TOKEN
+                )
 
             elif num_children == 1:
-                output_seq += NODE_BEGIN_TOKEN + str(v.name) + LCHILD_NODE_TOKEN + f"st{v.children[0].level_idx}" + NODE_END_TOKEN
+                output_seq += (
+                    NODE_BEGIN_TOKEN
+                    + str(v.name)
+                    + LCHILD_NODE_TOKEN
+                    + f"st{v.children[0].level_idx}"
+                    + NODE_END_TOKEN
+                )
 
             else:
                 output_seq += NODE_BEGIN_TOKEN + str(v.name) + NODE_END_TOKEN
@@ -419,27 +453,21 @@ def generate_input_output(root, j_obj):
         previous_level_subtrees.sort(key=lambda x: x.level_idx)
 
         if input_seq != "":
-            model_input = j_obj['input_sequence'] + " | " + input_seq
+            model_input = j_obj["input_sequence"] + " | " + input_seq
         else:
-            model_input = j_obj['input_sequence']
+            model_input = j_obj["input_sequence"]
 
-        training_data.append({
-            'id': j_obj['id'],
-            'db_id': j_obj['db_id'],
-            'input_sequence': j_obj['input_sequence'],
-            'SQL': j_obj['SQL'],
-            'model_input': model_input,
-            'output': output_seq,
-            'input_subtree_traversal_list': input_subtree_traversal_list
-            
-        })
-
-            
-            
-
-
-        
-
+        training_data.append(
+            {
+                "id": j_obj["id"],
+                "db_id": j_obj["db_id"],
+                "input_sequence": j_obj["input_sequence"],
+                "SQL": j_obj["SQL"],
+                "model_input": model_input,
+                "output": output_seq,
+                "input_subtree_traversal_list": input_subtree_traversal_list,
+            }
+        )
 
 
 training_data = []
@@ -447,14 +475,17 @@ total = 0
 success = 0
 fail = 0
 
-with open('/root/CS726/data/spider/resdsql_subsetting_schema/train_schema_subsetting_full_schema.json', 'r') as f:
+with open(
+    "/root/CS726/data/spider/resdsql_subsetting_schema/train_schema_subsetting_full_schema.json",
+    "r",
+) as f:
     data = json.load(f)
 
 for i in data:
     total += 1
-    try: 
-        if "+ " not in i['SQL'] and "- " not in i['SQL']:
-            root = ast_to_ra(parse(i['SQL']))
+    try:
+        if "+ " not in i["SQL"] and "- " not in i["SQL"]:
+            root = ast_to_ra(parse(i["SQL"]))
             root = remove_literal(root)
             root = balance_tree(root, root.height)
             root = fix_height(root, 9)
@@ -463,7 +494,7 @@ for i in data:
 
             generate_input_output(root, i)
             success += 1
-            
+
             # print_tree(root)
             # foo = get_node_names(root)
             # for x in foo.split(" || "):
@@ -481,10 +512,11 @@ print(f"Total: {total}")
 print(f"Passed: {success}")
 print(f"Failed: {fail}")
 
-with open('/root/CS726/data/spider/rat_input_data/train_schema_subsetting_full_schema.json', 'w') as f:
+with open(
+    "/root/CS726/data/spider/rat_input_data/train_schema_subsetting_full_schema.json",
+    "w",
+) as f:
     json.dump(training_data, f, indent=4)
-
-
 
 
 # dev k1 4 k2 4
@@ -496,4 +528,3 @@ with open('/root/CS726/data/spider/rat_input_data/train_schema_subsetting_full_s
 # Total: 7000
 # Passed: 5929
 # Failed: 1045
-

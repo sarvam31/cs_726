@@ -1,3 +1,5 @@
+# Source: https://github.com/OhadRubin/SmBop/blob/main/smbop/utils/ra_postproc.py
+
 import sys
 
 sys.path.insert(1, '/root/CS726/')
