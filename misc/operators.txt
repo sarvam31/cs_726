@@ -1,0 +1,1 @@
+"union", "intersection", "difference", "selection", "projection", "and", "or", "greater than", "greater than or equal to", "less than", "less than or equal to", "order by ascending", "order by descending", "group by", "limit", "in", "not in ", "like", "not like", "sum", "max", "min", "count", "average", "distinct", "keep"
